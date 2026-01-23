@@ -198,4 +198,39 @@ router.get('/peak-hours', async (req, res) => {
   }
 });
 
+// Category Performance (Treemap)
+router.get('/category-performance', async (req, res) => {
+  try {
+    // We need to group by product > category
+    // SQLite/Prisma grouping is limited, so we fetch and aggregate in JS for flexibility
+    // In a real Postgres app, we'd use raw SQL or robust groupBy
+    const saleItems = await prisma.saleItem.findMany({
+      include: {
+        product: true
+      }
+    });
+
+    const categoryMap: { [key: string]: number } = {};
+
+    for (const item of saleItems) {
+      if (item.product && item.product.category) {
+        const cat = item.product.category;
+        const revenue = item.quantity * item.price;
+        categoryMap[cat] = (categoryMap[cat] || 0) + revenue;
+      }
+    }
+
+    // Format for Recharts Treemap: [{ name: 'Category', size: 1000 }]
+    const data = Object.entries(categoryMap).map(([name, value]) => ({
+      name,
+      size: value
+    })).sort((a, b) => b.size - a.size); // Sort by highest revenue
+
+    res.json(data);
+  } catch (error) {
+    console.error('Category performance error:', error);
+    res.status(500).json({ error: 'Failed to fetch category performance' });
+  }
+});
+
 export default router;

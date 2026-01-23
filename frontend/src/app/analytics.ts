@@ -33,7 +33,9 @@ export async function getPeakHoursData() {
 }
 
 export async function getCategorySplitData() {
-  return []; 
+  const res = await fetch(`${BACKEND_URL}/analytics/category-performance`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch category performance');
+  return res.json();
 }
 
 export async function getStockRunRateData() {

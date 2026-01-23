@@ -8,13 +8,13 @@ import {
 } from '@/app/analytics'
 import DashboardMetrics from '@/components/DashboardMetrics'
 import PeakHoursChart from '@/components/dashboard/PeakHoursChart'
-import CategorySplitChart from '@/components/dashboard/CategorySplitChart'
 import StockRunRateWidget from '@/components/dashboard/StockRunRateWidget'
 import DeadStockWidget from '@/components/dashboard/DeadStockWidget'
 import LowStockWidget from '@/components/dashboard/LowStockWidget'
 import DateFilter from '@/components/DateFilter'
 import Link from 'next/link'
 import { BarChart3, ArrowLeft, Package } from 'lucide-react'
+import CategoryTreemap from '@/components/dashboard/CategoryTreemap'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,7 +88,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <PeakHoursChart data={peakHours} />
             </div>
             <div className="lg:col-span-1 h-[350px]">
-              <CategorySplitChart data={categorySplit} />
+              <CategoryTreemap data={categorySplit} />
             </div>
           </section>
 
