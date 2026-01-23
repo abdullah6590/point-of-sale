@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react'
 import Checkout from './Checkout'
 import Link from 'next/link'
+import SearchBar from './SearchBar'
 import type { ProductListItem, CartItem } from '@/types'
+import { getProducts } from '@/app/actions' // We will reuse this
 
-export default function POSDashboard({ products, initialCart = [] }: { products: ProductListItem[], initialCart?: CartItem[] }) {
+export default function POSDashboard({ products: initialProducts, initialCart = [] }: { products: ProductListItem[], initialCart?: CartItem[] }) {
   const [cart, setCart] = useState<CartItem[]>(initialCart)
+  const [products, setProducts] = useState<ProductListItem[]>(initialProducts)
+  const [isSearching, setIsSearching] = useState(false)
   
   // Effect to load initialCart when it changes (for loading quotes)
   useEffect(() => {
@@ -14,6 +18,22 @@ export default function POSDashboard({ products, initialCart = [] }: { products:
       setCart(initialCart)
     }
   }, [initialCart])
+
+  const handleSearch = async (query: string) => {
+    setIsSearching(true)
+    try {
+      if (!query.trim()) {
+        setProducts(initialProducts)
+        return
+      }
+      const results = await getProducts(query) // We need to update this action
+      setProducts(results)
+    } catch (error) {
+      console.error('Search failed:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   const addToCart = (product: ProductListItem) => {
     setCart(prev => {
@@ -45,32 +65,42 @@ export default function POSDashboard({ products, initialCart = [] }: { products:
             </p>
           </div>
           
-          {/* Navigation Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <Link 
-              href="/quotations" 
-              className="px-5 py-2.5 bg-[#2563EB] text-white font-semibold rounded-lg shadow-[0_4px_6px_-1px_rgb(37_99_235/0.3)] hover:bg-[#1D4ED8] hover:shadow-[0_10px_15px_-3px_rgb(37_99_235/0.3)] transition-all duration-200"
-            >
-              Quotations
-            </Link>
-            <Link 
-              href="/dashboard" 
-              className="px-5 py-2.5 bg-[#F1F5F9] text-[#475569] font-medium rounded-lg hover:bg-[#E2E8F0] hover:text-[#0F172A] transition-all duration-200"
-            >
-              Analytics
-            </Link>
-            <Link 
-              href="/inventory" 
-              className="px-5 py-2.5 bg-[#0F172A] text-white font-semibold rounded-lg shadow-[0_4px_6px_-1px_rgb(0_0_0/0.2)] hover:bg-[#1E293B] hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.2)] transition-all duration-200"
-            >
-              Manage Inventory
-            </Link>
+          <div className="flex flex-row items-center gap-3 w-auto">
+             <SearchBar onSearch={handleSearch} />
+             
+             {/* Navigation Buttons */}
+             <div className="flex flex-row items-center gap-2">
+               <Link 
+                 href="/quotations" 
+                 className="px-4 py-2.5 bg-[#2563EB] text-white font-semibold rounded-lg shadow-sm hover:bg-[#1D4ED8] transition-all text-sm whitespace-nowrap"
+               >
+                 Quotations
+               </Link>
+               <Link 
+                 href="/dashboard" 
+                 className="px-4 py-2.5 bg-[#F1F5F9] text-[#475569] font-medium rounded-lg hover:bg-[#E2E8F0] hover:text-[#0F172A] transition-all text-sm whitespace-nowrap"
+               >
+                 Analytics
+               </Link>
+               <Link 
+                 href="/inventory" 
+                 className="px-4 py-2.5 bg-[#0F172A] text-white font-semibold rounded-lg shadow-sm hover:bg-[#1E293B] transition-all text-sm whitespace-nowrap"
+               >
+                 Inventory
+               </Link>
+             </div>
           </div>
         </header>
 
         {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
-          {products.map(product => (
+          {products.length === 0 ? (
+             <div className="col-span-full py-12 text-center text-[#64748B]">
+               <p className="text-lg font-medium">No products found</p>
+               <p className="text-sm">Try adjusting your search terms</p>
+             </div>
+          ) : (
+            products.map(product => (
             <div 
               key={product.id} 
               className="group p-5 bg-white rounded-xl border border-[#E2E8F0] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05)] hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.1)] transition-all duration-300 flex flex-col justify-between h-52"
@@ -109,7 +139,8 @@ export default function POSDashboard({ products, initialCart = [] }: { products:
                 </button>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
       

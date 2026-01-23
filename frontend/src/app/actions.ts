@@ -11,8 +11,12 @@ import type {
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001/api';
 
-export async function getProducts(): Promise<Product[]> {
-  const res = await fetch(`${BACKEND_URL}/products`, { cache: 'no-store' });
+export async function getProducts(query?: string): Promise<Product[]> {
+  const url = query 
+    ? `${BACKEND_URL}/products?query=${encodeURIComponent(query)}`
+    : `${BACKEND_URL}/products`;
+    
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch products');
   return res.json();
 }
