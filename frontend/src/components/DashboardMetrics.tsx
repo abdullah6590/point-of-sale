@@ -1,17 +1,19 @@
-import { DollarSign, TrendingUp, Tag, ShoppingCart } from 'lucide-react'
+import { DollarSign, TrendingUp, Tag, ShoppingCart, Truck } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 interface MetricsProps {
   metrics: { 
     revenue: number
     profit: number
     salesCount: number
-    retailValue: number 
+    costValue: number 
+    shippingCost: number
   }
 }
 
 export default function DashboardMetrics({ metrics }: MetricsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
       
       {/* Total Revenue - Primary Stat */}
       <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05)] p-6 hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.1)] transition-all duration-300">
@@ -19,7 +21,7 @@ export default function DashboardMetrics({ metrics }: MetricsProps) {
           <div>
             <p className="text-sm font-medium text-[#64748B]">Total Revenue</p>
             <h3 className="text-3xl font-extrabold text-[#0F172A] mt-2">
-              ${metrics.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(metrics.revenue)}
             </h3>
           </div>
           <div className="p-3 rounded-xl bg-[#EFF6FF]">
@@ -41,7 +43,7 @@ export default function DashboardMetrics({ metrics }: MetricsProps) {
           <div>
             <p className="text-sm font-medium text-[#64748B]">Net Profit</p>
             <h3 className="text-3xl font-extrabold text-[#0F172A] mt-2">
-              ${metrics.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(metrics.profit)}
             </h3>
           </div>
           <div className="p-3 rounded-xl bg-[#F0FDF4]">
@@ -63,13 +65,13 @@ export default function DashboardMetrics({ metrics }: MetricsProps) {
         </div>
       </div>
 
-      {/* Retail Value */}
+      {/* Total Cost / COGS */}
       <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05)] p-6 hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.1)] transition-all duration-300">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-[#64748B]">Retail Value (MSRP)</p>
+            <p className="text-sm font-medium text-[#64748B]">Total Cost (COGS)</p>
             <h3 className="text-3xl font-extrabold text-[#0F172A] mt-2">
-              ${metrics.retailValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(metrics.costValue)}
             </h3>
           </div>
           <div className="p-3 rounded-xl bg-[#F5F3FF]">
@@ -77,7 +79,25 @@ export default function DashboardMetrics({ metrics }: MetricsProps) {
           </div>
         </div>
         <div className="mt-4 flex items-center gap-2">
-          <span className="text-xs text-[#94A3B8]">Total market price of sold items</span>
+          <span className="text-xs text-[#94A3B8]">Product cost only</span>
+        </div>
+      </div>
+
+       {/* Shipping Cost */}
+       <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05)] p-6 hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.1)] transition-all duration-300">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-[#64748B]">Shipping Revenue</p>
+            <h3 className="text-3xl font-extrabold text-[#0F172A] mt-2">
+              {formatCurrency(metrics.shippingCost)}
+            </h3>
+          </div>
+          <div className="p-3 rounded-xl bg-[#FFF7ED]">
+            <Truck className="w-6 h-6 text-[#EA580C]" strokeWidth={2} />
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <span className="text-xs text-[#94A3B8]">Total shipping fees</span>
         </div>
       </div>
 
@@ -97,7 +117,7 @@ export default function DashboardMetrics({ metrics }: MetricsProps) {
         <div className="mt-4 flex items-center gap-2">
           <span className="text-xs text-[#64748B]">Avg: </span>
           <span className="text-xs font-semibold text-[#0F172A]">
-            ${metrics.salesCount > 0 ? (metrics.revenue / metrics.salesCount).toFixed(2) : '0.00'}
+            {metrics.salesCount > 0 ? formatCurrency(metrics.revenue / metrics.salesCount) : formatCurrency(0)}
           </span>
           <span className="text-xs text-[#94A3B8]">per order</span>
         </div>

@@ -2,6 +2,7 @@
 
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts'
 import { LayoutGrid } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 
 const CustomizedContent = (props: any) => {
@@ -43,7 +44,7 @@ const CustomizedContent = (props: any) => {
            fontSize={10}
            className="pointer-events-none"
          >
-           ${value?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+           {formatCurrency(value)}
          </text>
       )}
     </g>
@@ -120,7 +121,7 @@ export default function CategoryTreemap({ data }: CategoryTreemapProps) {
                       <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-xl z-50">
                         <p className="text-sm font-bold text-[#0F172A] mb-1">{node.name}</p>
                         <p className="text-lg font-extrabold text-[#0F172A]">
-                          ${node.value.toLocaleString()}
+                          {formatCurrency(node.value)}
                         </p>
                         <p className="text-xs text-[#16A34A] font-medium mt-1">Revenue</p>
                       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
+import { formatCurrency } from '@/lib/utils'
 
 export default function RevenueTrendChart({ data }: { data: { date: string; revenue: number; profit: number; retail: number }[] }) {
   return (
@@ -38,7 +39,7 @@ export default function RevenueTrendChart({ data }: { data: { date: string; reve
             />
             <Tooltip 
               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-              formatter={(value: any) => [`$${Number(value).toFixed(2)}`, '']}
+              formatter={(value: any) => [formatCurrency(Number(value)), '']}
             />
             <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
             

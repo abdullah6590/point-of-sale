@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Label } from 'recharts'
 import { PieChartIcon } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 // Enterprise color palette
 const COLORS = ['#2563EB', '#8B5CF6', '#16A34A', '#F59E0B', '#EC4899']
@@ -59,7 +60,7 @@ export default function CategorySplitChart({ data }: { data: { name: string; val
                           y={(cy as number) + 14} 
                           className="fill-[#0F172A] text-lg font-bold"
                         >
-                          ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          {formatCurrency(totalValue)}
                         </tspan>
                       </text>
                     )
@@ -69,7 +70,7 @@ export default function CategorySplitChart({ data }: { data: { name: string; val
               />
             </Pie>
             <Tooltip 
-              formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+              formatter={(value: any) => [formatCurrency(Number(value)), 'Revenue']}
               contentStyle={{ 
                 borderRadius: '12px', 
                 border: '1px solid #E2E8F0', 

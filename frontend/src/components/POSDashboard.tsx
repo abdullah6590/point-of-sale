@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react'
 import Checkout from './Checkout'
 import Link from 'next/link'
+import Navigation from './Navigation'
 import SearchBar from './SearchBar'
+import { Package } from 'lucide-react'
 import type { ProductListItem, CartItem } from '@/types'
 import { getProducts } from '@/app/actions' // We will reuse this
+import { formatCurrency } from '@/lib/utils'
 
-export default function POSDashboard({ products: initialProducts, initialCart = [] }: { products: ProductListItem[], initialCart?: CartItem[] }) {
+export default function POSDashboard({ products: initialProducts, initialCart = [], initialCustomer }: { products: ProductListItem[], initialCart?: CartItem[], initialCustomer?: any }) {
   const [cart, setCart] = useState<CartItem[]>(initialCart)
   const [products, setProducts] = useState<ProductListItem[]>(initialProducts)
   const [isSearching, setIsSearching] = useState(false)
@@ -49,6 +52,10 @@ export default function POSDashboard({ products: initialProducts, initialCart = 
     setCart(prev => prev.map(item => item.productId === productId ? { ...item, ...updates } : item))
   }
 
+  const removeFromCart = (productId: string) => {
+    setCart(prev => prev.filter(item => item.productId !== productId))
+  }
+
   const clearCart = () => setCart([])
 
   return (
@@ -65,31 +72,10 @@ export default function POSDashboard({ products: initialProducts, initialCart = 
             </p>
           </div>
           
-          <div className="flex flex-row items-center gap-3 w-auto">
+           <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full sm:w-auto">
              <SearchBar onSearch={handleSearch} />
-             
-             {/* Navigation Buttons */}
-             <div className="flex flex-row items-center gap-2">
-               <Link 
-                 href="/quotations" 
-                 className="px-4 py-2.5 bg-[#2563EB] text-white font-semibold rounded-lg shadow-sm hover:bg-[#1D4ED8] transition-all text-sm whitespace-nowrap"
-               >
-                 Quotations
-               </Link>
-               <Link 
-                 href="/dashboard" 
-                 className="px-4 py-2.5 bg-[#F1F5F9] text-[#475569] font-medium rounded-lg hover:bg-[#E2E8F0] hover:text-[#0F172A] transition-all text-sm whitespace-nowrap"
-               >
-                 Analytics
-               </Link>
-               <Link 
-                 href="/inventory" 
-                 className="px-4 py-2.5 bg-[#0F172A] text-white font-semibold rounded-lg shadow-sm hover:bg-[#1E293B] transition-all text-sm whitespace-nowrap"
-               >
-                 Inventory
-               </Link>
-             </div>
-          </div>
+             <Navigation />
+           </div>
         </header>
 
         {/* Product Grid */}
@@ -103,40 +89,56 @@ export default function POSDashboard({ products: initialProducts, initialCart = 
             products.map(product => (
             <div 
               key={product.id} 
-              className="group p-5 bg-white rounded-xl border border-[#E2E8F0] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05)] hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.1)] transition-all duration-300 flex flex-col justify-between h-52"
+              className="group bg-white rounded-xl border border-[#E2E8F0] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05)] hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.1)] transition-all duration-300 flex flex-col overflow-hidden"
             >
-              {/* Product Info */}
-              <div>
-                <div className="flex justify-between items-start gap-3">
-                  <h3 className="font-bold text-lg leading-tight line-clamp-2 text-[#0F172A]">
-                    {product.name}
-                  </h3>
-                  {/* Stock Status Pill Badge */}
-                  <span className={`shrink-0 text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-full ${
+              {/* Product Image */}
+              <div className="relative aspect-[4/3] w-full bg-[#F1F5F9] flex items-center justify-center overflow-hidden">
+                {product.imageUrl ? (
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <Package className="w-12 h-12 text-[#94A3B8] opacity-50" strokeWidth={1.5} />
+                )}
+                
+                {/* Stock Status Badge Overlay */}
+                <div className="absolute top-3 right-3">
+                   <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-full shadow-sm ${
                     product.stockQuantity > 0 
-                      ? 'bg-[#DCFCE7] text-[#166534]' 
+                      ? 'bg-white/90 text-[#166534] backdrop-blur-sm' 
                       : 'bg-[#FEE2E2] text-[#991B1B]'
                   }`}>
                     {product.stockQuantity > 0 ? 'In Stock' : 'Out'}
                   </span>
                 </div>
-                <p className="text-sm text-[#64748B] mt-2">
-                  Qty: <span className="font-medium text-[#475569]">{product.stockQuantity}</span>
-                </p>
               </div>
-              
-              {/* Price and Action */}
-              <div className="mt-4 flex justify-between items-end">
-                <span className="font-extrabold text-2xl text-[#0F172A]">
-                  ${product.salePrice.toFixed(2)}
-                </span>
-                <button 
-                  onClick={() => addToCart(product)}
-                  disabled={product.stockQuantity <= 0}
-                  className="px-4 py-2 bg-[#2563EB] text-white text-sm font-semibold rounded-lg shadow-[0_2px_4px_rgb(37_99_235/0.3)] hover:bg-[#1D4ED8] hover:shadow-[0_4px_6px_rgb(37_99_235/0.4)] disabled:bg-[#CBD5E1] disabled:text-[#94A3B8] disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  Add to Cart
-                </button>
+
+              {/* Content */}
+              <div className="p-4 flex flex-col flex-1">
+                <div className="mb-auto">
+                  <h3 className="font-bold text-base leading-tight line-clamp-2 text-[#0F172A] mb-1">
+                    {product.name}
+                  </h3>
+                  <p className="text-sm text-[#64748B]">
+                    Qty: <span className="font-medium text-[#475569]">{product.stockQuantity}</span>
+                  </p>
+                </div>
+                
+                {/* Price and Action */}
+                <div className="mt-4 flex justify-between items-center gap-2">
+                  <span className="font-extrabold text-xl text-[#0F172A]">
+                    {formatCurrency(product.salePrice)}
+                  </span>
+                  <button 
+                    onClick={() => addToCart(product)}
+                    disabled={product.stockQuantity <= 0}
+                    className="px-3 py-2 bg-[#2563EB] text-white text-xs font-semibold rounded-lg shadow-[0_2px_4px_rgb(37_99_235/0.3)] hover:bg-[#1D4ED8] hover:shadow-[0_4px_6px_rgb(37_99_235/0.4)] disabled:bg-[#CBD5E1] disabled:text-[#94A3B8] disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
             ))
@@ -150,7 +152,10 @@ export default function POSDashboard({ products: initialProducts, initialCart = 
           cart={cart} 
           onSaleComplete={clearCart} 
           onUpdateCartItem={updateCartItem}
+          onRemoveItem={removeFromCart}
+          initialCustomer={initialCustomer}
         />
+
         {cart.length > 0 && (
           <div className="text-center mt-4">
             <button 

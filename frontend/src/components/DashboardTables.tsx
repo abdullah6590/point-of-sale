@@ -1,3 +1,5 @@
+import { formatCurrency } from '@/lib/utils'
+
 export default function DashboardTables({ 
   lowStockItems, 
   trendingItems 
@@ -58,7 +60,7 @@ export default function DashboardTables({
                   <tr key={item.id} className="border-b dark:border-zinc-700">
                     <td className="px-4 py-2 font-medium">{item.name}</td>
                     <td className="px-4 py-2">{item.soldQuantity}</td>
-                    <td className="px-4 py-2">${(item.soldQuantity * item.salePrice).toFixed(2)}</td>
+                    <td className="px-4 py-2">{formatCurrency(item.soldQuantity * item.salePrice)}</td>
                   </tr>
                 ))
               )}

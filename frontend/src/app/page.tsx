@@ -9,6 +9,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
   const params = await searchParams
 
   let initialCart: CartItem[] = []
+  let initialCustomer = null
   
   if (params?.quoteId) {
     const quote = await getSale(params.quoteId)
@@ -20,6 +21,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
         name: item.product.name,
         serialNumber: item.serialNumber ?? undefined
       }))
+      
+      initialCustomer = {
+        customerName: quote.customerName || '',
+        customerPhone: quote.customerPhone || '',
+        customerEmail: quote.customerEmail || '',
+        customerAddress: quote.customerAddress || '',
+      }
     }
   }
 
@@ -28,7 +36,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
 
   return (
     <main>
-      <POSDashboard products={serializedProducts} initialCart={initialCart} />
+      <POSDashboard products={serializedProducts} initialCart={initialCart} initialCustomer={initialCustomer} />
     </main>
   )
 }

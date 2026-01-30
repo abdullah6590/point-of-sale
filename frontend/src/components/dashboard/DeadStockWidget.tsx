@@ -1,6 +1,7 @@
 'use client'
 
 import { Ghost, Tag, PartyPopper } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 type Product = {
   id: string
@@ -45,7 +46,7 @@ export default function DeadStockWidget({ data }: { data: Product[] }) {
                     {item.name}
                   </p>
                   <p className="text-xs text-[#94A3B8] mt-0.5">
-                    {item.stockQuantity} units • ${item.salePrice.toFixed(2)}
+                    {item.stockQuantity} units • {formatCurrency(item.salePrice)}
                   </p>
                 </div>
                 

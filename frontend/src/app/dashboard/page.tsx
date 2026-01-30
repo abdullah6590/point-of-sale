@@ -11,22 +11,23 @@ import PeakHoursChart from '@/components/dashboard/PeakHoursChart'
 import StockRunRateWidget from '@/components/dashboard/StockRunRateWidget'
 import DeadStockWidget from '@/components/dashboard/DeadStockWidget'
 import LowStockWidget from '@/components/dashboard/LowStockWidget'
-import DateFilter from '@/components/DateFilter'
+import DateRangePicker from '@/components/dashboard/DateRangePicker'
+import CategoryPieChart from '@/components/dashboard/CategoryPieChart'
+import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { BarChart3, ArrowLeft, Package } from 'lucide-react'
-import CategoryTreemap from '@/components/dashboard/CategoryTreemap'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string; startDate?: string; endDate?: string }> }) {
   const params = await searchParams
-  const period = params.period || 'this-month'
+  const { period, startDate, endDate } = params
   
-  // Parallel Fetching
+  // Parallel Fetching with Date Params
   const [metrics, peakHours, categorySplit, stockRunRate, deadStock, lowStock] = await Promise.all([
-    getFinancialMetrics(period),
-    getPeakHoursData(),
-    getCategorySplitData(),
+    getFinancialMetrics(period, startDate, endDate),
+    getPeakHoursData(period, startDate, endDate),
+    getCategorySplitData(period, startDate, endDate),
     getStockRunRateData(),
     getDeadStockData(),
     getLowStockItems()
@@ -51,27 +52,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </div>
           
-          <div className="flex gap-3">
-            <Link 
-              href="/" 
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F1F5F9] text-[#475569] font-medium rounded-lg hover:bg-[#E2E8F0] hover:text-[#0F172A] transition-all duration-200"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Open Terminal
-            </Link>
-            <Link 
-              href="/inventory" 
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0F172A] text-white font-semibold rounded-lg shadow-[0_4px_6px_-1px_rgb(0_0_0/0.2)] hover:bg-[#1E293B] hover:shadow-[0_10px_15px_-3px_rgb(0_0_0/0.2)] transition-all duration-200"
-            >
-              <Package className="w-4 h-4" />
-              Inventory
-            </Link>
-          </div>
+          <Navigation />
         </header>
 
         {/* Date Filter */}
         <div className="mb-8">
-          <DateFilter />
+          <DateRangePicker />
         </div>
         
         {/* Dashboard Grid */}
@@ -88,7 +74,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <PeakHoursChart data={peakHours} />
             </div>
             <div className="lg:col-span-1 h-[350px]">
-              <CategoryTreemap data={categorySplit} />
+               <CategoryPieChart data={categorySplit} />
             </div>
           </section>
 

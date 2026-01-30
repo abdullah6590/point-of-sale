@@ -6,8 +6,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
 }
 
 model Product {
@@ -20,6 +26,15 @@ model Product {
   salePrice     Float    // The actual price you sell at
   category      String   // "Components" or "Kits"
   subCategory   String?  // Only if Kit: "Advance", "Basic", "Component Kit"
+  imageUrl      String?  // Product image URL or base64
+  
+  // Promo/Discount fields
+  hasPromo        Boolean   @default(false)
+  discountType    String?   // "percentage" or "fixed"
+  discountAmount  Float?    // Discount value
+  promoStartDate  DateTime?
+  promoEndDate    DateTime?
+  
   createdAt     DateTime @default(now())
   SaleItem      SaleItem[]
 }
@@ -31,6 +46,7 @@ model Sale {
   customerEmail     String?
   customerAddress   String?
   customerPostalCode String?
+  shippingPrice     Float    @default(0)
   totalAmount       Float
   totalProfit       Float    // Calculated at time of sale
   status            String   @default("COMPLETED") // "COMPLETED", "QUOTATION", "PARKED"
@@ -48,3 +64,4 @@ model SaleItem {
   product   Product @relation(fields: [productId], references: [id])
   sale      Sale    @relation(fields: [saleId], references: [id])
 }
+

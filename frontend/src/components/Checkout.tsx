@@ -1,27 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { processSale } from '@/app/actions'
 import Link from 'next/link'
 import type { CartItem } from '@/types'
+import { formatCurrency } from '@/lib/utils'
+import { Trash2, Plus, Minus, Edit2, Check, X, Truck } from 'lucide-react'
 
 interface CheckoutProps {
   cart: CartItem[]
   onSaleComplete: () => void
   onUpdateCartItem: (productId: string, updates: Partial<CartItem>) => void
+  onRemoveItem: (productId: string) => void
+  initialCustomer?: any
 }
 
-export default function Checkout({ cart, onSaleComplete, onUpdateCartItem }: CheckoutProps) {
+export default function Checkout({ cart, onSaleComplete, onUpdateCartItem, onRemoveItem, initialCustomer }: CheckoutProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerEmail: ''
+    customerName: initialCustomer?.customerName || '',
+    customerPhone: initialCustomer?.customerPhone || '',
+    customerEmail: initialCustomer?.customerEmail || '',
+    customerAddress: initialCustomer?.customerAddress || ''
   })
+  const [shippingPrice, setShippingPrice] = useState<number>(0)
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
+  const [editingPrice, setEditingPrice] = useState<string | null>(null)
+  const [tempPrice, setTempPrice] = useState<string>('')
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const total = subtotal + shippingPrice
 
   const handleProcess = async (status: 'COMPLETED' | 'QUOTATION' | 'PARKED') => {
     setLoading(true)
@@ -29,14 +38,15 @@ export default function Checkout({ cart, onSaleComplete, onUpdateCartItem }: Che
 
     try {
       const sale = await processSale(
-        cart.map(item => ({ productId: item.productId, quantity: item.quantity, serialNumber: item.serialNumber })),
-        formData,
+        cart.map(item => ({ productId: item.productId, quantity: item.quantity, serialNumber: item.serialNumber, price: item.price })),
+        { ...formData, shippingPrice },
         status
       )
       
       const message = status === 'COMPLETED' ? 'Sale completed!' : status === 'QUOTATION' ? 'Quote saved!' : 'Order parked!'
       alert(`${message} ID: ${sale.id}`)
-      setFormData({ customerName: '', customerPhone: '', customerEmail: '' }) 
+      setFormData({ customerName: '', customerPhone: '', customerEmail: '', customerAddress: '' }) 
+      setShippingPrice(0)
       onSaleComplete()
     } catch (err: any) {
       setError(err.message)
@@ -48,6 +58,25 @@ export default function Checkout({ cart, onSaleComplete, onUpdateCartItem }: Che
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     handleProcess('COMPLETED')
+  }
+
+  const startEditingPrice = (productId: string, currentPrice: number) => {
+    setEditingPrice(productId)
+    setTempPrice(currentPrice.toString())
+  }
+
+  const savePrice = (productId: string) => {
+    const newPrice = parseFloat(tempPrice)
+    if (!isNaN(newPrice) && newPrice >= 0) {
+      onUpdateCartItem(productId, { price: newPrice })
+    }
+    setEditingPrice(null)
+    setTempPrice('')
+  }
+
+  const cancelEditingPrice = () => {
+    setEditingPrice(null)
+    setTempPrice('')
   }
 
   // Empty Cart State
@@ -91,31 +120,85 @@ export default function Checkout({ cart, onSaleComplete, onUpdateCartItem }: Che
       </div>
 
       {/* Cart Items */}
-      <div className="flex-1 overflow-y-auto p-5 max-h-[320px]">
+      <div className="flex-1 overflow-y-auto p-5 max-h-[280px]">
         <ul className="space-y-3">
           {cart.map(item => (
             <li 
               key={item.productId} 
-              className="p-3 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer border border-transparent hover:border-[#E2E8F0]"
+              className="p-3 rounded-lg hover:bg-[#F8FAFC] transition-colors border border-transparent hover:border-[#E2E8F0] group"
               onClick={() => setExpandedItem(expandedItem === item.productId ? null : item.productId)}
             >
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium block text-[#0F172A] truncate">{item.name}</span>
-                  <span className="text-xs text-[#64748B]">
-                    {item.quantity} × ${item.price.toFixed(2)}
-                  </span>
+                  <span className="font-medium block text-[#0F172A] truncate mb-1">{item.name}</span>
+                  
+                  <div className="flex items-center gap-2">
+                    <CartQuantityInput 
+                      value={item.quantity} 
+                      onChange={(val) => onUpdateCartItem(item.productId, { quantity: val })} 
+                    />
+                    
+                    {/* Editable Price */}
+                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                      <span className="text-xs text-[#64748B]">×</span>
+                      {editingPrice === item.productId ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-[#64748B]">Rs.</span>
+                          <input
+                            type="number"
+                            value={tempPrice}
+                            onChange={e => setTempPrice(e.target.value)}
+                            className="w-16 text-xs p-1 rounded border border-[#2563EB] bg-white text-[#0F172A] focus:outline-none"
+                            step="0.01"
+                            min="0"
+                            autoFocus
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') savePrice(item.productId)
+                              if (e.key === 'Escape') cancelEditingPrice()
+                            }}
+                          />
+                          <button onClick={() => savePrice(item.productId)} className="p-0.5 text-[#22C55E] hover:bg-[#DCFCE7] rounded">
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={cancelEditingPrice} className="p-0.5 text-[#EF4444] hover:bg-[#FEE2E2] rounded">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => startEditingPrice(item.productId, item.price)}
+                          className="flex items-center gap-1 text-xs text-[#64748B] hover:text-[#2563EB] group/price"
+                          title="Click to edit price"
+                        >
+                          <span>{formatCurrency(item.price)}</span>
+                          <Edit2 className="w-3 h-3 opacity-0 group-hover/price:opacity-100 transition-opacity" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {item.serialNumber && (
-                    <span className="text-xs text-[#2563EB] block mt-0.5">
+                    <span className="text-xs text-[#2563EB] block mt-1.5">
                       SN: {item.serialNumber}
                     </span>
                   )}
                 </div>
-                <div className="text-right ml-3">
-                  <span className="font-semibold text-[#0F172A] block">
-                    ${(item.price * item.quantity).toFixed(2)}
+                
+                <div className="text-right flex flex-col items-end gap-2">
+                  <span className="font-bold text-[#0F172A]">
+                    {formatCurrency(item.price * item.quantity)}
                   </span>
-                  <span className="text-[10px] text-[#94A3B8]">Click to edit</span>
+                   <button 
+                     onClick={(e) => {
+                       e.stopPropagation()
+                       onRemoveItem(item.productId)
+                     }}
+                     className="text-[#94A3B8] hover:text-[#EF4444] p-1 rounded-md hover:bg-[#FEE2E2] transition-colors opacity-0 group-hover:opacity-100"
+                     title="Remove Item"
+                     aria-label="Remove item"
+                   >
+                     <Trash2 className="w-4 h-4" />
+                   </button>
                 </div>
               </div>
               
@@ -139,14 +222,48 @@ export default function Checkout({ cart, onSaleComplete, onUpdateCartItem }: Che
         </ul>
       </div>
 
+      {/* Shipping Price */}
+      <div className="px-5 py-3 border-t border-[#E2E8F0] bg-[#F8FAFC]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-[#475569]">
+            <Truck className="w-4 h-4" />
+            <span>Shipping</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-[#64748B]">Rs.</span>
+            <input
+              type="number"
+              value={shippingPrice || ''}
+              onChange={e => setShippingPrice(parseFloat(e.target.value) || 0)}
+              className="w-20 text-sm p-1.5 rounded-lg bg-white border border-[#E2E8F0] text-[#0F172A] focus:border-[#2563EB] focus:ring-1 focus:ring-[#DBEAFE] outline-none transition-all text-right"
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Total & Checkout Section */}
       <div className="bg-[#0F172A] p-5 rounded-t-2xl shadow-[0_-4px_20px_rgb(0_0_0/0.1)]">
-        {/* Total Display */}
-        <div className="flex justify-between items-end mb-5">
-          <span className="text-[#94A3B8] font-medium text-sm">Total Amount</span>
-          <span className="text-3xl font-extrabold text-white tracking-tight">
-            ${total.toFixed(2)}
-          </span>
+        {/* Subtotal & Total Display */}
+        <div className="space-y-2 mb-4">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-[#94A3B8]">Subtotal</span>
+            <span className="text-white">{formatCurrency(subtotal)}</span>
+          </div>
+          {shippingPrice > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-[#94A3B8]">Shipping</span>
+              <span className="text-white">{formatCurrency(shippingPrice)}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-end pt-2 border-t border-[#334155]">
+            <span className="text-[#94A3B8] font-medium">Total Amount</span>
+            <span className="text-3xl font-extrabold text-white tracking-tight">
+              {formatCurrency(total)}
+            </span>
+          </div>
         </div>
 
         {/* Checkout Form */}
@@ -177,6 +294,15 @@ export default function Checkout({ cart, onSaleComplete, onUpdateCartItem }: Che
               onChange={e => setFormData({...formData, customerEmail: e.target.value})}
             />
           </div>
+
+          {/* Customer Address */}
+          <textarea
+            placeholder="Delivery Address (optional)"
+            className="w-full p-3 rounded-lg bg-[#1E293B] border border-[#334155] text-white placeholder-[#64748B] focus:bg-[#0F172A] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/30 outline-none transition-all resize-none"
+            rows={2}
+            value={formData.customerAddress}
+            onChange={e => setFormData({...formData, customerAddress: e.target.value})}
+          />
           
           {/* Error Display */}
           {error && (
@@ -218,3 +344,89 @@ export default function Checkout({ cart, onSaleComplete, onUpdateCartItem }: Che
     </div>
   )
 }
+
+function CartQuantityInput({ value, onChange }: { value: number, onChange: (val: number) => void }) {
+  const [localValue, setLocalValue] = useState(value.toString())
+
+  useEffect(() => {
+    // Only update local value if it differs significantly and we want to ensure sync.
+    // However, for typing flow, we rely on localValue.
+    // This effect ensures if external source updates quantity (e.g. duplicating item logic somewhere else?), we reflect it.
+    // Checking strict inequality to avoid loop if possible, though React handles primitive deps well.
+    if (parseInt(localValue) !== value && localValue !== '') {
+        setLocalValue(value.toString())
+    }
+    // Handle edge case where value became valid but local was empty? No, value is always valid number from parent.
+    // If parent says 5, and we have "", we should probably show 5? 
+    // IF we are typing, we don't want to be overwritten.
+    // Let's rely on simple sync:
+    // setLocalValue(value.toString()) 
+    // BUT this kills typing if parent re-renders fast.
+    // Actually Checkout re-renders on every cart update.
+    // If I type "1", parent updates to 1. Re-render with 1. localValue "1".
+    // I type "12", parent updates to 12. Re-render with 12. localValue "12".
+    // I type "" (delete). Parent NOT updated (stays 12). Re-render with 12. localValue becomes "12" again!
+    // This is the bug. I need to NOT sync if I am the one editing?
+    
+    // Better: Don't sync if the parsed localValue matches value.
+    // If I have "", parsed is NaN. value is 12. NaN != 12. Syncs to "12". FORCE.
+    // This logic prevents empty string.
+  }, [value])
+  
+  // FIX: If we want to allow empty string, we should effectively debounce or only sync on blur?
+  // OR: Don't use a controlled parent-child sync, just use initial state?
+  // But if I add same item again externally, it needs to update.
+  
+  // Revised approach:
+  // We accept that "controlled" input is hard with "number" type and non-nullable source.
+  // We will strictly update parent ONLY on valid input.
+  // We will NOT reset from parent if the current local input effectively means "I am typing".
+  
+  // Actually, simpler: Use key={value} to force re-mount if we want? No, loses focus.
+  
+  // CORRECT FIX:
+  // If the user inputs something invalid (like empty string), we keep it in local state.
+  // The parent passes back the OLD valid value.
+  // We see new props.value != current valid localValue?
+  
+  // Let's try a simpler version: 
+  // If `localValue` is empty string, DON't overwrite it with `value` from props.
+  // Only overwrite if `value` changes to something different than what we last emitted?
+  
+  // Actually, the previous implementation in the `replace_file_content` block had `useEffect` which overwrites.
+  
+  // Let's implement this:
+  // passing `key={item.productId + item.quantity}` to the input? No.
+  
+  // I will implement a `useEffect` that checks:
+  // If `localValue` parses to `value`, do nothing.
+  // If `localValue` is empty or invalid, AND `value` is different from what we expect?
+  
+  // Actually, simpler:
+  // Just use the input as fully controlled by local state.
+  // Sync from props ONLY if the prop value is different from what our current local value represents.
+  
+  if (parseInt(localValue) !== value && localValue !== '' && !isNaN(parseInt(localValue))) {
+       setLocalValue(value.toString())
+  }
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalValue(e.target.value)
+    const val = parseInt(e.target.value)
+    if (!isNaN(val)) {
+      onChange(val)
+    }
+  }
+
+  return (
+    <input
+      type="number"
+      value={localValue}
+      onChange={handleChange}
+      onBlur={() => setLocalValue(value.toString())} // On blur, revert to actual valid value if we left it empty
+      className="w-16 min-w-[60px] text-center text-sm font-semibold bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0] focus:border-[#2563EB] focus:ring-2 focus:ring-[#DBEAFE] rounded-lg px-2 py-1.5 outline-none transition-all no-spinners"
+      placeholder="Qty"
+    />
+  )
+}
+
